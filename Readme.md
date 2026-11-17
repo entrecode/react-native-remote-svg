@@ -1,3 +1,5 @@
+> **entrecode fork** of [seekshiva/react-native-remote-svg](https://github.com/seekshiva/react-native-remote-svg) 2.0.11 with: svg kept in proportion (`object-fit: contain`, iOS sized in `vw`/`vh`), WebView fills its container instead of a 200×100 default, fade-in after load, JavaScript disabled in the WebView, `Image.resolveAssetSource` instead of the deep import, web support, and `resizeMode="contain"` for non-svg images.
+
 # react-native-remote-svg
 
 `Image` component that supports svg filetype in

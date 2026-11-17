@@ -1,8 +1,8 @@
 {
   "name": "react-native-remote-svg",
   "description": "Load svg images in react-native",
-  "repository": "seekshiva/react-native-remote-svg",
-  "version": "2.0.11",
+  "repository": "entrecode/react-native-remote-svg",
+  "version": "2.0.11-entrecode.1",
   "main": "index.js",
   "authors": [
     "Shiva Nandan"

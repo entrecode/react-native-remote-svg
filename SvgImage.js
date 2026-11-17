@@ -1,20 +1,22 @@
 // @flow
 
-import React, { useEffect, useState } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import { WebView } from "react-native-webview";
 
-const heightUnits = Platform.OS === "ios" ? "vh" : "%";
+// iOS sizes the svg in viewport units, Android in percent of the body.
+const svgWidth = Platform.OS === "ios" ? "100vw" : "100%";
+const svgHeight = Platform.OS === "ios" ? "100vh" : "100%";
 
-const getHTML = (svgContent, style) => `
-<html data-key="key-${style.height}-${style.width}">
+const getHTML = (svgContent) => `
+<html>
   <head>
     <style>
       html, body {
         margin: 0;
         padding: 0;
-        height: 100${heightUnits};
-        width: 100${heightUnits};
+        height: 100%;
+        width: 100%;
         overflow: hidden;
         background-color: transparent;
       }
@@ -22,9 +24,10 @@ const getHTML = (svgContent, style) => `
         position: fixed;
         top: 0;
         left: 0;
-        height: 100%;
-        width: 100%;
+        height: ${svgHeight};
+        width: ${svgWidth};
         overflow: hidden;
+        object-fit: contain;
       }
     </style>
   </head>
@@ -34,8 +37,13 @@ const getHTML = (svgContent, style) => `
 </html>
 `;
 
-function SvgImage({ source, onLoadStart, onLoadEnd, style, containerStyle }) {
+const SvgImage = forwardRef(function SvgImage(
+  { source, onLoadStart, onLoadEnd, style, containerStyle },
+  ref
+) {
   const [svgContent, setSvgContent] = useState(null);
+  // The WebView stays invisible until its first load, so the svg doesn't flash.
+  const [loaded, setLoaded] = useState(false);
 
   const uri = source && source.uri;
   useEffect(() => {
@@ -54,7 +62,9 @@ function SvgImage({ source, onLoadStart, onLoadEnd, style, containerStyle }) {
             const text = await res.text();
             setSvgContent(text);
           } catch (err) {
-            console.error("got error", err);
+            if (err.name !== "AbortError") {
+              console.error("got error", err);
+            }
           }
         }
         onLoadEnd && onLoadEnd();
@@ -69,37 +79,41 @@ function SvgImage({ source, onLoadStart, onLoadEnd, style, containerStyle }) {
   }, [uri]);
 
   if (svgContent) {
-    const flattenedStyle = StyleSheet.flatten(style) || {};
-    const html = getHTML(svgContent, flattenedStyle);
+    const html = getHTML(svgContent);
 
     return (
       <View
+        ref={ref}
         pointerEvents="none"
         style={[style, containerStyle]}
         renderToHardwareTextureAndroid={true}
       >
         <WebView
           originWhitelist={["*"]}
-          scalesPageToFit={true}
-          useWebKit={false}
           style={[
-            {
-              width: 200,
-              height: 100,
-              backgroundColor: "transparent",
-            },
-            style,
+            StyleSheet.flatten(style),
+            { opacity: loaded ? 1 : 0, flex: 1 },
           ]}
           scrollEnabled={false}
           showsHorizontalScrollIndicator={false}
           showsVerticalScrollIndicator={false}
           source={{ html }}
+          // Scripts inside a remote svg must not run.
+          javaScriptEnabled={false}
+          onLoadEnd={() => !loaded && setLoaded(true)}
         />
       </View>
     );
   } else {
-    return <View pointerEvents="none" style={[containerStyle, style]} />;
+    return (
+      <View
+        ref={ref}
+        pointerEvents="none"
+        style={[containerStyle, style]}
+        renderToHardwareTextureAndroid={true}
+      />
+    );
   }
-}
+});
 
 export default SvgImage;
